@@ -1,0 +1,9 @@
+{
+  "name": "tiny-c-fable-core",
+  "private": true,
+  "scripts": {
+    "build": "dotnet fable src/TinyC.Core --outDir dist --lang JavaScript",
+    "watch": "dotnet fable watch src/TinyC.Core --outDir dist --lang JavaScript",
+    "test:dotnet": "dotnet run --project tests/TinyC.Tests"
+  }
+}

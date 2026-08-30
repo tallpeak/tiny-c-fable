@@ -1,0 +1,37 @@
+open TinyC
+
+let cases =
+    [ "arithmetic", "main [ return 2 + 3 * 4; ]", 14, ""
+      "function", "double int x [ return x*2; ] main [ return double(21); ]", 42, ""
+      "loop", "main [ int i, total; i=1; while(i<=10) [ total=total+i; i=i+1; ] return total; ]", 55, ""
+      "array", "main [ int a(3); a(0)=7; a(1)=8; a(2)=9; return a(0)+a(1)+a(2); ]", 24, ""
+      "array shadows function", "f int x [ return x+100; ] main [ int f(1); f(0)=7; return f(0); ]", 7, ""
+      "nested scope", "main [ int x; x=3; [ int x; x=9; ] return x; ]", 3, ""
+      "char storage", "main [ char c; c=300; return c; ]", 44, ""
+      "break", "main [ int i; while(1) [ i=i+1; if(i==3) break; ] return i; ]", 3, ""
+      "return through loop", "main [ while(1) [ return 42; ] ]", 42, ""
+      "readme example", "sum int n [ int i, total; i=1; while(i<=n) [ total=total+i; i=i+1; ] return total; ] main [ println(\"sum = \" ); pn(sum(100)); return sum(100); ]", 5050, "sum = \n5050"
+      "output", "main [ println(\"hello from tiny-c\"); return 0; ]", 0, "hello from tiny-c\n" ]
+
+let mutable failures=0
+for name,source,wantValue,wantOutput in cases do
+    match Api.execute source with
+    | Ok result when result.ExitValue=wantValue && result.Output.Replace("\r\n","\n")=wantOutput -> printfn "PASS %s (%d steps)" name result.Steps
+    | Ok result -> failures<-failures+1; eprintfn "FAIL %s: got value=%d output=%A" name result.ExitValue result.Output
+    | Error e -> failures<-failures+1; eprintfn "FAIL %s: %s" name e
+if failures>0 then failwithf "%d test(s) failed" failures
+
+let failuresBeforeErrors = failures
+let errorCases =
+    [ "assignment target", "main [ 1=2; ]", "Left side of assignment is not assignable"
+      "array range", "main [ int a(1); return a(1); ]", "Array index out of range"
+      "step limit", "main [ while(1) [ ] ]", "Execution step limit exceeded" ]
+
+for name, source, expected in errorCases do
+    let result = if name = "step limit" then Api.executeWithLimit 25 source else Api.execute source
+    match result with
+    | Error message when message.Contains expected -> printfn "PASS %s" name
+    | Error message -> failures <- failures + 1; eprintfn "FAIL %s: got %s" name message
+    | Ok value -> failures <- failures + 1; eprintfn "FAIL %s: unexpectedly succeeded with %A" name value
+
+if failures > failuresBeforeErrors then failwithf "%d error test(s) failed" (failures - failuresBeforeErrors)
