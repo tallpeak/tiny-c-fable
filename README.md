@@ -35,6 +35,18 @@ npm run build
 Fable writes ES modules into `dist/`. `TinyC.Api.execute` and
 `TinyC.Api.executeWithLimit` are the main embedding entry points.
 
+## Playground
+
+Build the Fable output, then serve the repository root with any static server
+(opening the HTML file directly will prevent browser module imports):
+
+```sh
+npm run build
+python -m http.server 8080
+```
+
+Open `http://localhost:8080/web/` to use the textarea-based Tiny-C playground.
+
 ## Example
 
 ```text
