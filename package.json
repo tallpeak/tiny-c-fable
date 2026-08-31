@@ -4,6 +4,8 @@
   "scripts": {
     "build": "dotnet fable src/TinyC.Core --outDir dist --lang JavaScript",
     "watch": "dotnet fable watch src/TinyC.Core --outDir dist --lang JavaScript",
-    "test:dotnet": "dotnet run --project tests/TinyC.Tests"
+    "test:dotnet": "dotnet run --project tests/TinyC.Tests",
+    "run:tc": "dotnet run --project src/TinyC.Cli --",
+    "serve": "npm run build && dotnet run --project src/TinyC.Cli -- --serve"
   }
 }

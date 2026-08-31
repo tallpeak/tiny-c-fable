@@ -28,6 +28,7 @@ Install .NET 8 or newer, then:
 
 ```sh
 dotnet run --project tests/TinyC.Tests
+dotnet run --project src/TinyC.Cli -- reference/tiny-c/SamplePrograms/lee.tc
 dotnet tool restore
 npm run build
 ```
@@ -37,12 +38,11 @@ Fable writes ES modules into `dist/`. `TinyC.Api.execute` and
 
 ## Playground
 
-Build the Fable output, then serve the repository root with any static server
-(opening the HTML file directly will prevent browser module imports):
+Serve the repository root with the included local server. It rebuilds the Fable
+output first; opening the HTML file directly will prevent browser module imports:
 
 ```sh
-npm run build
-python -m http.server 8080
+npm run serve
 ```
 
 Open `http://localhost:8080/web/` to use the textarea-based Tiny-C playground.
