@@ -56,7 +56,7 @@ let private runProgram maxSteps path =
         eprintfn "Tiny-C source file not found: %s" path
         2
     else
-        match File.ReadAllText path |> Api.executeWithLimit maxSteps with
+        match Api.executeFileWithLimit maxSteps path with
         | Ok result ->
             Console.Write(result.Output)
             eprintfn "\nExit value: %d (%d steps)" result.ExitValue result.Steps
@@ -73,7 +73,7 @@ let main args =
         match Int32.TryParse port with
         | true, value when value > 0 && value <= 65535 -> serve value; 0
         | _ -> eprintfn "Port must be between 1 and 65535."; 2
-    | [| path |] -> runProgram 1_000_000 path
+    | [| path |] -> runProgram 10_000_000 path
     | [| "--max-steps"; limit; path |] ->
         match Int32.TryParse limit with
         | true, value when value > 0 -> runProgram value path

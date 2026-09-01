@@ -16,7 +16,7 @@ module Parser =
         match a, b with
         | KwInt,KwInt | KwChar,KwChar | KwIf,KwIf | KwElse,KwElse | KwWhile,KwWhile
         | KwReturn,KwReturn | KwBreak,KwBreak | LParen,LParen | RParen,RParen
-        | LBracket,LBracket | RBracket,RBracket | Comma,Comma | Semicolon,Semicolon
+        | Ellipsis,Ellipsis | LBracket,LBracket | RBracket,RBracket | Comma,Comma | Semicolon,Semicolon
         | Plus,Plus | Minus,Minus | Star,Star | Slash,Slash | Percent,Percent
         | Assign,Assign | EqEq,EqEq | BangEq,BangEq | Lt,Lt | LtEq,LtEq
         | Gt,Gt | GtEq,GtEq | Eof,Eof -> true
@@ -78,6 +78,16 @@ module Parser =
                     while accept s Comma do args.Add(expression s)
                     expect s RParen "Expected ')' after arguments"
                 Call(name,List.ofSeq args)
+            elif (match s.Current.Kind with
+                  | Identifier _ | Integer _ | CharLiteral _ | StringLiteral _ | LParen -> true
+                  | _ -> false) then
+                // Classical Tiny-C permits a single unparenthesized argument,
+                // e.g. "pl line + 1".  It also permits comma-separated
+                // arguments, e.g. "MC x,120" and "printf fmt,x".
+                let args = ResizeArray<Expr>()
+                args.Add(expression s)
+                while accept s Comma do args.Add(expression s)
+                Call(name, List.ofSeq args)
             else Variable name
         | t -> raise (ParseFailure { Position=t.Position; Message="Expected an expression" })
 
@@ -135,12 +145,24 @@ module Parser =
                 else
                     let name=identifier s
                     let ps=ResizeArray<Parameter>()
+                    let parameter typ =
+                        let paramName = identifier s
+                        // Classical Tiny-C marks pointer/array parameters as
+                        // name(0). The runtime already represents these as
+                        // values, so consume the annotation here.
+                        let isArray = accept s LParen
+                        if isArray then
+                            expression s |> ignore
+                            expect s RParen "Expected ')' after parameter annotation"
+                        ps.Add { Type=typ; Name=paramName; IsArray=isArray }
                     while not (same s.Current.Kind LBracket) do
                         if same s.Current.Kind Eof then s.Error "Expected '[' to begin function body"
-                        let typ=tcType s
-                        ps.Add { Type=typ; Name=identifier s }
-                        while accept s Comma do ps.Add { Type=typ; Name=identifier s }
-                        accept s Semicolon |> ignore
+                        if accept s Ellipsis then ()
+                        else
+                            let typ = tcType s
+                            parameter typ
+                            while accept s Comma do parameter typ
+                            accept s Semicolon |> ignore
                     let body=statement s
                     functions.Add { Name=name; Parameters=List.ofSeq ps; Body=body }
             let functionMap = functions |> Seq.map(fun f -> f.Name,f) |> Map.ofSeq

@@ -12,15 +12,20 @@ iteration. The core uses APIs supported by Fable and can compile to JavaScript.
 - classical `[` / `]` blocks
 - arithmetic, comparisons, assignment, `if`/`else`, `while`, `break`, `return`
 - functions with classical declarations such as `double int x [ ... ]`
-- integer/character arrays using classical `a(10)` syntax
-- browser-safe host functions: `print`, `println`, `pn`, and `pc`
+- integer/character arrays using classical inclusive `a(10)` syntax (indices `0..10`)
+- browser-safe host functions: `print`, `println`, `pl`, `pn`, `pc`, `printf`, and `putchar`
 - execution step limit for stopping runaway programs
 - line/column lexer and parser diagnostics
 
-This milestone intentionally omits source includes, old pointer arithmetic,
+The .NET file runner supports source includes such as `#include pps/mathLib.tc`.
+The browser playground executes the source entered in its editor and does not
+resolve filesystem includes; paste or preprocess included files before running
+them there. General pointer arithmetic,
 file/system calls, dynamic native plugins, debugger commands, varargs, and the
-numbered `MC` interface. Those need explicit browser-safe designs rather than a
-literal port. Classical calls currently require parentheses.
+numbered `MC` interface. `pl charArray + offset` is the one compatibility
+exception: it prints a null-terminated character-array slice for classical
+console programs such as Mandelbrot. Those features otherwise need explicit
+browser-safe designs rather than a literal port.
 
 ## Build and test
 
@@ -46,6 +51,12 @@ npm run serve
 ```
 
 Open `http://localhost:8080/web/` to use the textarea-based Tiny-C playground.
+
+The reference Mandelbrot program is supported:
+
+```sh
+dotnet run --project src/TinyC.Cli -- reference/tiny-c/SamplePrograms/mandel.tc
+```
 
 ## Example
 

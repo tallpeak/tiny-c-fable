@@ -4,6 +4,7 @@ module Lexer =
     type TokenKind =
         | Identifier of string | Integer of int | CharLiteral of int | StringLiteral of string
         | KwInt | KwChar | KwIf | KwElse | KwWhile | KwReturn | KwBreak
+        | Ellipsis
         | LParen | RParen | LBracket | RBracket | Comma | Semicolon
         | Plus | Minus | Star | Slash | Percent | Assign
         | EqEq | BangEq | Lt | LtEq | Gt | GtEq | Eof
@@ -86,6 +87,10 @@ module Lexer =
                 else
                     advance() |> ignore
                     match c with
+                    | '.' when c = '.' && i + 1 < source.Length && source[i] = '.' && source[i + 1] = '.' ->
+                        advance() |> ignore
+                        advance() |> ignore
+                        add p Ellipsis
                     | '(' -> add p LParen | ')' -> add p RParen | '[' -> add p LBracket | ']' -> add p RBracket
                     | ',' -> add p Comma | ';' -> add p Semicolon | '+' -> add p Plus | '-' -> add p Minus
                     | '*' -> add p Star | '/' -> add p Slash | '%' -> add p Percent | '=' -> add p Assign

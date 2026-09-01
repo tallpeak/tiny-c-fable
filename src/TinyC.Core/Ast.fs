@@ -33,7 +33,7 @@ type Statement =
     | Return of Expr option
     | Break
 
-type Parameter = { Type: TcType; Name: string }
+type Parameter = { Type: TcType; Name: string; IsArray: bool }
 
 type FunctionDef = { Name: string; Parameters: Parameter list; Body: Statement }
 
