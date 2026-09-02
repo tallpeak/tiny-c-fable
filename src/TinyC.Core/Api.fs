@@ -6,7 +6,7 @@ open System.IO
 open System.Text
 
 module Api =
-    type Execution = { Output: string; ExitValue: int; Steps: int }
+    type Execution = { Output: string; ExitValue: int; Steps: int; CanvasCommands: string }
 
 #if !FABLE_COMPILER
     let private stripIncludePath (text: string) =
@@ -69,6 +69,15 @@ module Api =
 
     let private executeTextWithLimit maxSteps source : Result<Execution,string> =
         let output = StringBuilder()
+        let canvasCommands = StringBuilder()
+        let canvasCommand (command: string) = canvasCommands.AppendLine(command) |> ignore
+
+        let textOf = function
+            | Runtime.TextValue s -> s
+            | Runtime.CharacterArrayValue(values, offset) ->
+                if offset < 0 || offset > values.Length then ""
+                else values |> Seq.skip offset |> Seq.takeWhile (fun value -> value <> 0) |> Seq.map char |> String.Concat
+            | Runtime.NumberValue n -> string n
         let display = function
             | Runtime.NumberValue n -> string n
             | Runtime.TextValue s -> s
@@ -153,14 +162,46 @@ module Api =
                     | _ -> Error "printf expects a format string"
               "putchar", fun xs -> match xs with [Runtime.NumberValue n] -> output.Append(char n) |> ignore; Ok(Runtime.NumberValue n) | _ -> Error "putchar expects one character"
               "pn", fun xs -> match xs with [Runtime.NumberValue n] -> output.Append(n) |> ignore; Ok(Runtime.NumberValue n) | _ -> Error "pn expects one integer"
-              "pc", fun xs -> match xs with [Runtime.NumberValue n] -> output.Append(char n) |> ignore; Ok(Runtime.NumberValue n) | _ -> Error "pc expects one character" ] |> Map.ofList
+              "pc", fun xs -> match xs with [Runtime.NumberValue n] -> output.Append(char n) |> ignore; Ok(Runtime.NumberValue n) | _ -> Error "pc expects one character"
+              // Graphics are recorded as data so the browser host can replay them on canvas.
+              "start", fun xs -> match xs with [_; Runtime.NumberValue width; Runtime.NumberValue height] -> canvasCommand (sprintf "clear|%d|%d" width height); Ok(Runtime.NumberValue 0) | _ -> Error "start expects a name, width, and height"
+              "rectangle", fun xs -> match xs with [Runtime.NumberValue x; Runtime.NumberValue y; Runtime.NumberValue width; Runtime.NumberValue height] -> canvasCommand (sprintf "rectangle|%d|%d|%d|%d" x y width height); Ok(Runtime.NumberValue 0) | _ -> Error "rectangle expects four integers"
+              "setrgb", fun xs -> match xs with [Runtime.NumberValue r; Runtime.NumberValue g; Runtime.NumberValue b] -> canvasCommand (sprintf "rgb|%d|%d|%d" r g b); Ok(Runtime.NumberValue 0) | _ -> Error "setrgb expects three integers"
+              // Unparenthesized Tiny-C calls make a no-argument call followed by
+              // another identifier parse as a nested call. Ignore such values;
+              // evaluating them still preserves the following graphics operation.
+              "fill", fun _ -> canvasCommand "fill"; Ok(Runtime.NumberValue 0)
+              "stroke", fun _ -> canvasCommand "stroke"; Ok(Runtime.NumberValue 0)
+              "setfontsize", fun xs -> match xs with [Runtime.NumberValue size] -> canvasCommand (sprintf "fontsize|%d" size); Ok(Runtime.NumberValue 0) | _ -> Error "setfontsize expects one integer"
+              "moveto", fun xs -> match xs with [Runtime.NumberValue x; Runtime.NumberValue y] -> canvasCommand (sprintf "moveto|%d|%d" x y); Ok(Runtime.NumberValue 0) | _ -> Error "moveto expects two integers"
+              "showtext", fun xs -> match xs with [value] -> canvasCommand (sprintf "text|%s" ((textOf value).Replace("|", " ").Replace("\r", "").Replace("\n", " "))); Ok(Runtime.NumberValue 0) | _ -> Error "showtext expects one string"
+              "strcpy", fun xs ->
+                    match xs with
+                    | [Runtime.CharacterArrayValue(destination, destinationOffset); source] ->
+                        let text = textOf source
+                        let chars = text |> Seq.map int |> Seq.truncate (destination.Length - destinationOffset - 1) |> Seq.toArray
+                        Array.blit chars 0 destination destinationOffset chars.Length
+                        if destinationOffset + chars.Length < destination.Length then destination[destinationOffset + chars.Length] <- 0
+                        Ok(Runtime.NumberValue chars.Length)
+                    | _ -> Error "strcpy expects a destination array and source text"
+              "strcat", fun xs ->
+                    match xs with
+                    | [Runtime.CharacterArrayValue(destination, destinationOffset); source] ->
+                        let start = destinationOffset + (destination |> Seq.skip destinationOffset |> Seq.takeWhile ((<>) 0) |> Seq.length)
+                        let chars = textOf source |> Seq.map int |> Seq.truncate (destination.Length - start - 1) |> Seq.toArray
+                        Array.blit chars 0 destination start chars.Length
+                        if start + chars.Length < destination.Length then destination[start + chars.Length] <- 0
+                        Ok(Runtime.NumberValue (start + chars.Length - destinationOffset))
+                    | _ -> Error "strcat expects a destination array and source text"
+              "show", fun _ -> Ok(Runtime.NumberValue 0) ] |> Map.ofList
         Parser.parse source
         |> Result.mapError(fun d -> sprintf "%d:%d: %s" d.Position.Line d.Position.Column d.Message)
         |> Result.bind(Runtime.run { MaxSteps=maxSteps; EntryPoint="main"; HostFunctions=hosts })
         |> Result.map(fun r ->
             { Output = output.ToString()
               ExitValue = (match r.Value with Runtime.NumberValue n -> n | _ -> 0)
-              Steps = r.Steps })
+              Steps = r.Steps
+              CanvasCommands = canvasCommands.ToString() })
 
     let executeWithLimit maxSteps source : Result<Execution,string> =
         executeTextWithLimit maxSteps source

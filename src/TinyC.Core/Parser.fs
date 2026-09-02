@@ -29,6 +29,11 @@ module Parser =
     let private tcType (s: State) =
         match s.Take() with | { Kind=KwInt } -> IntType | { Kind=KwChar } -> CharType | t -> raise (ParseFailure { Position=t.Position; Message="Expected int or char" })
 
+    let private noArgumentFunctions =
+        Set.ofList [ "fill"; "stroke"; "show"; "next"; "icolors"; "gcolors"; "placement"; "white" ]
+    let private statementFunctions =
+        Set.ofList [ "start"; "rectangle"; "setrgb"; "fill"; "stroke"; "setfontsize"; "moveto"; "lineto"; "showtext"; "show"; "icolors"; "gcolors"; "placement"; "ilabel"; "glabel"; "box"; "white" ]
+
     let rec private expression s = assignment s
     and private assignment s =
         let left = comparison s
@@ -78,8 +83,11 @@ module Parser =
                     while accept s Comma do args.Add(expression s)
                     expect s RParen "Expected ')' after arguments"
                 Call(name,List.ofSeq args)
+            elif Set.contains name noArgumentFunctions then
+                Call(name, [])
             elif (match s.Current.Kind with
-                  | Identifier _ | Integer _ | CharLiteral _ | StringLiteral _ | LParen -> true
+                  | Identifier nextName -> not (Set.contains nextName statementFunctions)
+                  | Integer _ | CharLiteral _ | StringLiteral _ | LParen -> true
                   | _ -> false) then
                 // Classical Tiny-C permits a single unparenthesized argument,
                 // e.g. "pl line + 1".  It also permits comma-separated

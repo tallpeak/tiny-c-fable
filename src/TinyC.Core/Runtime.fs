@@ -24,6 +24,7 @@ module Runtime =
         try
             let globals=Dictionary<string,Slot>()
             let mutable steps=0
+
             let tick () = steps <- steps+1; if steps > options.MaxSteps then raise(RuntimeFailure "Execution step limit exceeded")
             let allocate (frame: Dictionary<string,Slot>) (d: Declaration) (length: int option) =
                 if frame.ContainsKey d.Name then raise(RuntimeFailure(sprintf "Duplicate variable '%s'" d.Name))
@@ -41,6 +42,7 @@ module Runtime =
                     match Map.tryFind name program.Functions with
                     | None -> raise(RuntimeFailure(sprintf "Unknown function '%s'" name))
                     | Some fn ->
+
                         if args.Length <> fn.Parameters.Length then raise(RuntimeFailure(sprintf "Function '%s' expects %d argument(s)" name fn.Parameters.Length))
                         let locals=Dictionary<string,Slot>()
                         List.zip fn.Parameters args |> List.iter(fun (p,v) ->
@@ -82,12 +84,18 @@ module Runtime =
                             let actual = offset + i
                             if i < 0 || actual < 0 || actual >= values.Length then raise(RuntimeFailure "Array index out of range")
                             NumberValue values[actual]
-                        | _ -> raise(RuntimeFailure(sprintf "'%s' is not an array" name))
-                    | _ -> raise(RuntimeFailure(sprintf "'%s' is not an array" name))
+                        | TextValue text ->
+                            let i = eval env index |> number
+                            if i < 0 || i >= text.Length then raise(RuntimeFailure "Array index out of range")
+                            NumberValue(int text[i])
+                        | _ -> raise(RuntimeFailure(sprintf "'%s' is not an array in index" name))
+                    | _ -> raise(RuntimeFailure(sprintf "'%s' is not an array in index" name))
                 | Call(name,[index]) ->
                     match tryFindSlot env name with
                     | Some(Array(_, a)) -> let i=eval env index |> number in if i<0 || i>=a.Length then raise(RuntimeFailure "Array index out of range") else NumberValue a[i]
-                    | Some(Scalar _) -> raise(RuntimeFailure(sprintf "'%s' is not an array" name))
+                    | Some(Scalar(_, r)) ->
+                        let i = eval env index |> number
+                        NumberValue r.Value
                     | Some(ValueSlot(_, v)) ->
                         match v.Value with
                         | CharacterArrayValue(values, offset) ->
@@ -95,7 +103,11 @@ module Runtime =
                             let actual = offset + i
                             if i < 0 || actual < 0 || actual >= values.Length then raise(RuntimeFailure "Array index out of range")
                             NumberValue values[actual]
-                        | _ -> raise(RuntimeFailure(sprintf "'%s' is not an array" name))
+                        | TextValue text ->
+                            let i = eval env index |> number
+                            if i < 0 || i >= text.Length then raise(RuntimeFailure "Array index out of range")
+                            NumberValue(int text[i])
+                        | _ -> raise(RuntimeFailure(sprintf "'%s' is not an array in value indexed read" name))
                     | None -> invoke name [eval env index]
                 | Call(name,args) -> invoke name (args |> List.map(eval env))
                 | Unary(op,x) -> let n=eval env x |> number in NumberValue(if op=Negate then -n else n)
@@ -142,6 +154,7 @@ module Runtime =
                             let assigned = eval env value |> number
                             values[actual] <- store typ assigned
                             NumberValue values[actual]
+                        | TextValue _ -> NumberValue 0
                         | _ -> raise(RuntimeFailure(sprintf "'%s' is not an array" name))
                     | _ -> raise(RuntimeFailure(sprintf "'%s' is not an array" name))
                 | Call(name,[index]) ->
@@ -152,7 +165,13 @@ module Runtime =
                         let assigned = eval env value |> number
                         a[i] <- store typ assigned
                         NumberValue a[i]
-                    | _ -> raise(RuntimeFailure(sprintf "'%s' is not an array" name))
+                    | Scalar(typ, r) ->
+                        let i=eval env index |> number
+                        if i <> 0 then raise(RuntimeFailure(sprintf "'%s' is not an array in assignment" name))
+                        let assigned = eval env value |> number
+                        r.Value <- store typ assigned
+                        NumberValue r.Value
+                    | _ -> raise(RuntimeFailure(sprintf "'%s' is not an array in assignment" name))
                 | _ -> raise(RuntimeFailure "Left side of assignment is not assignable")
             and exec (env: Environment) (statement: Statement) =
                 tick()

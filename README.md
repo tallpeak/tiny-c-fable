@@ -14,6 +14,7 @@ iteration. The core uses APIs supported by Fable and can compile to JavaScript.
 - functions with classical declarations such as `double int x [ ... ]`
 - integer/character arrays using classical inclusive `a(10)` syntax (indices `0..10`)
 - browser-safe host functions: `print`, `println`, `pl`, `pn`, `pc`, `printf`, and `putchar`
+- canvas graphics recording for `color.tc` (`start`, `rectangle`, `setrgb`, `fill`, `moveto`, `showtext`, and `stroke`)
 - execution step limit for stopping runaway programs
 - line/column lexer and parser diagnostics
 
@@ -50,7 +51,15 @@ output first; opening the HTML file directly will prevent browser module imports
 npm run serve
 ```
 
-Open `http://localhost:8080/web/` to use the textarea-based Tiny-C playground.
+Open `http://localhost:8080/web/` to use the textarea-based Tiny-C playground. Use
+**Load color.tc** to load the reference color sample; its drawing operations are
+replayed on the canvas below the output.
+
+The reference color program is supported by the browser canvas host:
+
+```sh
+dotnet run --project src/TinyC.Cli -- reference/tiny-c/SamplePrograms/color.tc
+```
 
 The reference Mandelbrot program is supported:
 

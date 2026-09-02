@@ -20,6 +20,7 @@
       textarea { min-height: 23rem; resize: vertical; padding: 1rem; }
       h2 { font-size: 1rem; margin: 1.25rem 0 .5rem; color: #c4d1de; }
       pre { min-height: 7rem; margin: 0; padding: 1rem; white-space: pre-wrap; }
+      canvas { display: block; width: 100%; max-width: 700px; height: auto; border: 1px solid #34465a; border-radius: .5rem; background: white; }
       #status { color: #9db0c3; font-size: .9rem; }
       #status.error { color: #ff9b9b; }
     </style>
@@ -32,12 +33,15 @@
         <button id="run" type="button">Run program</button>
         <button id="example" class="secondary" type="button">Load example</button>
         <button id="mathlib-example" class="secondary" type="button">Load Lee MathLib</button>
+        <button id="color-example" class="secondary" type="button">Load color.tc</button>
         <span id="status" aria-live="polite">Ready</span>
         <label>Step limit <input id="step-limit" type="number" min="1" value="10000000" /></label>
       </div>
       <textarea id="source" spellcheck="false" aria-label="Tiny-C source"></textarea>
       <h2>Output</h2>
       <pre id="output" aria-live="polite"></pre>
+      <h2>Canvas</h2>
+      <canvas id="canvas" width="350" height="360" aria-label="Tiny-C drawing output"></canvas>
     </main>
     <script type="module" src="./app.js"></script>
   </body>
