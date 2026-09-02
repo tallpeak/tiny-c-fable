@@ -29,7 +29,7 @@ browser-safe designs rather than a literal port.
 
 ## Build and test
 
-Install .NET 8 or newer, then:
+Install .NET 10 or newer, then:
 
 ```sh
 dotnet run --project tests/TinyC.Tests
