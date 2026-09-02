@@ -18,9 +18,9 @@ iteration. The core uses APIs supported by Fable and can compile to JavaScript.
 - line/column lexer and parser diagnostics
 
 The .NET file runner supports source includes such as `#include pps/mathLib.tc`.
-The browser playground executes the source entered in its editor and does not
-resolve filesystem includes; paste or preprocess included files before running
-them there. General pointer arithmetic,
+The browser playground resolves includes over HTTP from files served beneath the
+repository root. Its Lee MathLib example loads the original source and expands
+`pps/mathLib.tc` and `pps/library.tc` before execution. General pointer arithmetic,
 file/system calls, dynamic native plugins, debugger commands, varargs, and the
 numbered `MC` interface. `pl charArray + offset` is the one compatibility
 exception: it prints a null-terminated character-array slice for classical

@@ -12,6 +12,7 @@
       .intro { color: #aab7c6; margin: .5rem 0 1.5rem; }
       .toolbar { display: flex; gap: .75rem; align-items: center; margin-bottom: .75rem; }
       button { border: 0; border-radius: .4rem; padding: .65rem 1rem; font: inherit; font-weight: 700; cursor: pointer; background: #45c486; color: #08140e; }
+      button:disabled { cursor: wait; opacity: .65; }
       button.secondary { background: #273444; color: #dce6f1; }
       label { margin-left: auto; color: #aab7c6; font-size: .9rem; }
       input { width: 7rem; margin-left: .4rem; padding: .35rem; border: 1px solid #45576c; border-radius: .3rem; background: #17212d; color: inherit; }
@@ -30,6 +31,7 @@
       <div class="toolbar">
         <button id="run" type="button">Run program</button>
         <button id="example" class="secondary" type="button">Load example</button>
+        <button id="mathlib-example" class="secondary" type="button">Load Lee MathLib</button>
         <span id="status" aria-live="polite">Ready</span>
         <label>Step limit <input id="step-limit" type="number" min="1" value="10000000" /></label>
       </div>
