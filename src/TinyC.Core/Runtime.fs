@@ -3,7 +3,7 @@ namespace TinyC
 open System.Collections.Generic
 
 module Runtime =
-    type Value = NumberValue of int | TextValue of string | CharacterArrayValue of int array * int
+    type Value = NumberValue of int | TextValue of string | CharacterArrayValue of int array * int | IntegerArrayValue of int array * int
     type HostFunction = Value list -> Result<Value, string>
     type RunOptions = { MaxSteps: int; EntryPoint: string; HostFunctions: Map<string,HostFunction> }
     type RunResult = { Value: Value; Steps: int }
@@ -17,7 +17,7 @@ module Runtime =
 
     let private number = function
         | NumberValue n -> n
-        | TextValue _ | CharacterArrayValue _ -> raise(RuntimeFailure "Expected a numeric value")
+        | TextValue _ | CharacterArrayValue _ | IntegerArrayValue _ -> raise(RuntimeFailure "Expected a numeric value")
     let private truth n = n <> 0
 
     let run (options: RunOptions) (program: Program) : Result<RunResult,string> =
@@ -72,7 +72,7 @@ module Runtime =
                     match findSlot env name with
                     | Scalar(_, r) -> NumberValue r.Value
                     | Array(CharType, values) -> CharacterArrayValue(values, 0)
-                    | Array _ -> raise(RuntimeFailure(sprintf "Array '%s' requires an index" name))
+                    | Array(IntType, values) -> IntegerArrayValue(values, 0)
                     | ValueSlot(_, v) -> v.Value
                 | Index(name,index) ->
                     match findSlot env name with
@@ -80,6 +80,11 @@ module Runtime =
                     | ValueSlot(_, v) ->
                         match v.Value with
                         | CharacterArrayValue(values, offset) ->
+                            let i = eval env index |> number
+                            let actual = offset + i
+                            if i < 0 || actual < 0 || actual >= values.Length then raise(RuntimeFailure "Array index out of range")
+                            NumberValue values[actual]
+                        | IntegerArrayValue(values, offset) ->
                             let i = eval env index |> number
                             let actual = offset + i
                             if i < 0 || actual < 0 || actual >= values.Length then raise(RuntimeFailure "Array index out of range")
@@ -103,6 +108,11 @@ module Runtime =
                             let actual = offset + i
                             if i < 0 || actual < 0 || actual >= values.Length then raise(RuntimeFailure "Array index out of range")
                             NumberValue values[actual]
+                        | IntegerArrayValue(values, offset) ->
+                            let i = eval env index |> number
+                            let actual = offset + i
+                            if i < 0 || actual < 0 || actual >= values.Length then raise(RuntimeFailure "Array index out of range")
+                            NumberValue values[actual]
                         | TextValue text ->
                             let i = eval env index |> number
                             if i < 0 || i >= text.Length then raise(RuntimeFailure "Array index out of range")
@@ -115,6 +125,7 @@ module Runtime =
                     let left, right = eval env a, eval env b
                     match op, left, right with
                     | Add, CharacterArrayValue(values, offset), NumberValue n -> CharacterArrayValue(values, offset + n)
+                    | Add, IntegerArrayValue(values, offset), NumberValue n -> IntegerArrayValue(values, offset + n / 4)
                     | Add, NumberValue x, NumberValue y -> NumberValue(x+y)
                     | Add, _, _ -> raise(RuntimeFailure "Only a character array can be offset for output")
                     | _, _, _ ->
@@ -154,6 +165,13 @@ module Runtime =
                             let assigned = eval env value |> number
                             values[actual] <- store typ assigned
                             NumberValue values[actual]
+                        | IntegerArrayValue(values, offset) ->
+                            let i = eval env index |> number
+                            let actual = offset + i
+                            if i < 0 || actual < 0 || actual >= values.Length then raise(RuntimeFailure "Array index out of range")
+                            let assigned = eval env value |> number
+                            values[actual] <- store typ assigned
+                            NumberValue values[actual]
                         | TextValue _ -> NumberValue 0
                         | _ -> raise(RuntimeFailure(sprintf "'%s' is not an array" name))
                     | _ -> raise(RuntimeFailure(sprintf "'%s' is not an array" name))
@@ -171,7 +189,16 @@ module Runtime =
                         let assigned = eval env value |> number
                         r.Value <- store typ assigned
                         NumberValue r.Value
-                    | _ -> raise(RuntimeFailure(sprintf "'%s' is not an array in assignment" name))
+                    | ValueSlot(typ, r) ->
+                        let i = eval env index |> number
+                        let assigned = eval env value |> number
+                        match r.Value with
+                        | CharacterArrayValue(values, offset) | IntegerArrayValue(values, offset) ->
+                            let actual = offset + i
+                            if i < 0 || actual < 0 || actual >= values.Length then raise(RuntimeFailure "Array index out of range")
+                            values[actual] <- store typ assigned
+                            NumberValue values[actual]
+                        | _ -> raise(RuntimeFailure(sprintf "'%s' is not an array in assignment" name))
                 | _ -> raise(RuntimeFailure "Left side of assignment is not assignable")
             and exec (env: Environment) (statement: Statement) =
                 tick()

@@ -78,6 +78,7 @@ module Api =
                 if offset < 0 || offset > values.Length then ""
                 else values |> Seq.skip offset |> Seq.takeWhile (fun value -> value <> 0) |> Seq.map char |> String.Concat
             | Runtime.NumberValue n -> string n
+            | Runtime.IntegerArrayValue _ -> ""
         let display = function
             | Runtime.NumberValue n -> string n
             | Runtime.TextValue s -> s
@@ -89,6 +90,7 @@ module Api =
                     |> Seq.takeWhile (fun value -> value <> 0)
                     |> Seq.map char
                     |> String.Concat
+            | Runtime.IntegerArrayValue _ -> ""
         let stringOf = function
             | Runtime.TextValue s -> s
             | Runtime.NumberValue n -> string n
@@ -100,11 +102,13 @@ module Api =
                     |> Seq.takeWhile (fun value -> value <> 0)
                     |> Seq.map char
                     |> String.Concat
+            | Runtime.IntegerArrayValue _ -> ""
         let charOf = function
             | Runtime.NumberValue n -> char n
             | Runtime.TextValue s -> if String.IsNullOrEmpty s then '\000' else s[0]
             | Runtime.CharacterArrayValue(values, offset) ->
                 if offset < 0 || offset >= values.Length then '\000' else char values[offset]
+            | Runtime.IntegerArrayValue _ -> '\000'
         let formatPrintf (format: string) (args: Runtime.Value list) =
             let sb = StringBuilder()
             let mutable i = 0
@@ -174,6 +178,13 @@ module Api =
               "stroke", fun _ -> canvasCommand "stroke"; Ok(Runtime.NumberValue 0)
               "setfontsize", fun xs -> match xs with [Runtime.NumberValue size] -> canvasCommand (sprintf "fontsize|%d" size); Ok(Runtime.NumberValue 0) | _ -> Error "setfontsize expects one integer"
               "moveto", fun xs -> match xs with [Runtime.NumberValue x; Runtime.NumberValue y] -> canvasCommand (sprintf "moveto|%d|%d" x y); Ok(Runtime.NumberValue 0) | _ -> Error "moveto expects two integers"
+              "lineto", fun xs -> match xs with [Runtime.NumberValue x; Runtime.NumberValue y] -> canvasCommand (sprintf "lineto|%d|%d" x y); Ok(Runtime.NumberValue 0) | _ -> Error "lineto expects two integers"
+              "arc", fun xs -> match xs with [Runtime.NumberValue x; Runtime.NumberValue y; Runtime.NumberValue radius; Runtime.NumberValue startAngle; Runtime.NumberValue endAngle] -> canvasCommand (sprintf "arc|%d|%d|%d|%d|%d" x y radius startAngle endAngle); Ok(Runtime.NumberValue 0) | _ -> Error "arc expects five integers"
+              "arcneg", fun xs -> match xs with [Runtime.NumberValue x; Runtime.NumberValue y; Runtime.NumberValue radius; Runtime.NumberValue startAngle; Runtime.NumberValue endAngle] -> canvasCommand (sprintf "arcneg|%d|%d|%d|%d|%d" x y radius startAngle endAngle); Ok(Runtime.NumberValue 0) | _ -> Error "arcneg expects five integers"
+              "dot", fun xs -> match xs with [Runtime.NumberValue x; Runtime.NumberValue y] -> canvasCommand (sprintf "moveto|%d|%d" x y); canvasCommand (sprintf "lineto|%d|%d" (x + 1) (y + 1)); Ok(Runtime.NumberValue 0) | _ -> Error "dot expects two integers"
+              "next", fun _ -> canvasCommand "next"; Ok(Runtime.NumberValue 0)
+              "setdash", fun xs -> match xs with [Runtime.NumberValue dash; Runtime.NumberValue offset] -> canvasCommand (sprintf "setdash|%d|%d" dash offset); Ok(Runtime.NumberValue 0) | _ -> Error "setdash expects a dash length and offset"
+              "setdash2", fun xs -> match xs with [Runtime.NumberValue dash1; Runtime.NumberValue dash2; Runtime.NumberValue offset] -> canvasCommand (sprintf "setdash2|%d|%d|%d" dash1 dash2 offset); Ok(Runtime.NumberValue 0) | _ -> Error "setdash2 expects two dash lengths and an offset"
               "showtext", fun xs -> match xs with [value] -> canvasCommand (sprintf "text|%s" ((textOf value).Replace("|", " ").Replace("\r", "").Replace("\n", " "))); Ok(Runtime.NumberValue 0) | _ -> Error "showtext expects one string"
               "strcpy", fun xs ->
                     match xs with

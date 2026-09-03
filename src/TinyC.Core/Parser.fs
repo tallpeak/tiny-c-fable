@@ -174,7 +174,6 @@ module Parser =
                     let body=statement s
                     functions.Add { Name=name; Parameters=List.ofSeq ps; Body=body }
             let functionMap = functions |> Seq.map(fun f -> f.Name,f) |> Map.ofSeq
-            if functionMap.Count <> functions.Count then s.Error "Duplicate function declaration"
             Ok { Globals=List.ofSeq globals; Functions=functionMap }
         with ParseFailure d -> Error d
 

@@ -12,10 +12,13 @@
       .intro { color: #aab7c6; margin: .5rem 0 1.5rem; }
       .toolbar { display: flex; gap: .75rem; align-items: center; margin-bottom: .75rem; }
       button { border: 0; border-radius: .4rem; padding: .65rem 1rem; font: inherit; font-weight: 700; cursor: pointer; background: #45c486; color: #08140e; }
-      button:disabled { cursor: wait; opacity: .65; }
+      button:disabled, select:disabled { cursor: wait; opacity: .65; }
       button.secondary { background: #273444; color: #dce6f1; }
-      label { margin-left: auto; color: #aab7c6; font-size: .9rem; }
-      input { width: 7rem; margin-left: .4rem; padding: .35rem; border: 1px solid #45576c; border-radius: .3rem; background: #17212d; color: inherit; }
+      label { color: #aab7c6; font-size: .9rem; }
+      label.step-limit { margin-left: auto; }
+      input, select { margin-left: .4rem; padding: .35rem; border: 1px solid #45576c; border-radius: .3rem; background: #17212d; color: inherit; }
+      input { width: 7rem; }
+      select { max-width: 18rem; }
       textarea, pre { box-sizing: border-box; width: 100%; border: 1px solid #34465a; border-radius: .5rem; background: #0b1016; color: #e8edf3; font: 14px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
       textarea { min-height: 23rem; resize: vertical; padding: 1rem; }
       h2 { font-size: 1rem; margin: 1.25rem 0 .5rem; color: #c4d1de; }
@@ -32,10 +35,9 @@
       <div class="toolbar">
         <button id="run" type="button">Run program</button>
         <button id="example" class="secondary" type="button">Load example</button>
-        <button id="mathlib-example" class="secondary" type="button">Load Lee MathLib</button>
-        <button id="color-example" class="secondary" type="button">Load color.tc</button>
+        <label>Sample <select id="sample" disabled><option>Finding programs…</option></select></label>
         <span id="status" aria-live="polite">Ready</span>
-        <label>Step limit <input id="step-limit" type="number" min="1" value="10000000" /></label>
+        <label class="step-limit">Step limit <input id="step-limit" type="number" min="1" value="10000000" /></label>
       </div>
       <textarea id="source" spellcheck="false" aria-label="Tiny-C source"></textarea>
       <h2>Output</h2>
@@ -43,6 +45,6 @@
       <h2>Canvas</h2>
       <canvas id="canvas" width="350" height="360" aria-label="Tiny-C drawing output"></canvas>
     </main>
-    <script type="module" src="./app.js"></script>
+    <script type="module" src="./app.js?v=arcbowpic"></script>
   </body>
 </html>
