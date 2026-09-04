@@ -15,8 +15,21 @@ let private contentType (path: string) =
     | ".js" -> "text/javascript; charset=utf-8"
     | ".css" -> "text/css; charset=utf-8"
     | ".json" -> "application/json; charset=utf-8"
+    | ".tc" | ".txt" -> "text/plain; charset=utf-8"
     | ".svg" -> "image/svg+xml"
     | _ -> "application/octet-stream"
+
+let private directoryListing (path: string) =
+    let body = StringBuilder()
+    body.AppendLine("<!doctype html><html><body><ul>") |> ignore
+    Directory.EnumerateFiles(path)
+    |> Seq.map Path.GetFileName
+    |> Seq.sortWith (fun left right -> StringComparer.OrdinalIgnoreCase.Compare(left, right))
+    |> Seq.iter (fun name ->
+        let href = Uri.EscapeDataString(name)
+        body.Append("<li><a href=\"").Append(href).Append("\">").Append(WebUtility.HtmlEncode(name)).AppendLine("</a></li>") |> ignore)
+    body.AppendLine("</ul></body></html>") |> ignore
+    Encoding.UTF8.GetBytes(body.ToString())
 
 let private serve port =
     let root = Path.GetFullPath(Directory.GetCurrentDirectory())
@@ -45,11 +58,18 @@ let private serve port =
             let relative = requestPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)
             let requested = if String.IsNullOrWhiteSpace relative then "web/index.html" else relative
             let candidate = Path.GetFullPath(Path.Combine(root, requested))
-            let file = if Directory.Exists candidate then Path.Combine(candidate, "index.html") else candidate
-            if not (file.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase)) || not (File.Exists file) then
+            if not (candidate.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase)) then
                 send 404 "Not Found" "text/plain; charset=utf-8" (Encoding.UTF8.GetBytes "Not found.")
+            elif Directory.Exists candidate then
+                let index = Path.Combine(candidate, "index.html")
+                if File.Exists index then
+                    send 200 "OK" (contentType index) (File.ReadAllBytes index)
+                else
+                    send 200 "OK" "text/html; charset=utf-8" (directoryListing candidate)
+            elif File.Exists candidate then
+                send 200 "OK" (contentType candidate) (File.ReadAllBytes candidate)
             else
-                send 200 "OK" (contentType file) (File.ReadAllBytes file)
+                send 404 "Not Found" "text/plain; charset=utf-8" (Encoding.UTF8.GetBytes "Not found.")
 
 let private runProgram maxSteps path =
     if not (File.Exists path) then
