@@ -32,7 +32,7 @@ module Parser =
     let private noArgumentFunctions =
         Set.ofList [ "fill"; "stroke"; "show"; "next"; "icolors"; "gcolors"; "placement"; "white" ]
     let private statementFunctions =
-        Set.ofList [ "start"; "rectangle"; "setrgb"; "fill"; "stroke"; "setfontsize"; "moveto"; "lineto"; "showtext"; "show"; "icolors"; "gcolors"; "placement"; "ilabel"; "glabel"; "box"; "white" ]
+        Set.ofList [ "start"; "rectangle"; "setrgb"; "fill"; "stroke"; "setfontsize"; "moveto"; "lineto"; "showtext"; "show"; "icolors"; "gcolors"; "placement"; "ilabel"; "glabel"; "box"; "white"; "printf" ]
 
     let rec private expression s = assignment s
     and private assignment s =
@@ -75,7 +75,7 @@ module Parser =
         | { Kind=CharLiteral c } -> Character c
         | { Kind=StringLiteral x } -> Text x
         | { Kind=LParen } -> let e=expression s in expect s RParen "Expected ')'"; e
-        | { Kind=Identifier name } ->
+        | { Kind=Identifier name; Position=position } ->
             if accept s LParen then
                 let args = ResizeArray<Expr>()
                 if not (accept s RParen) then
@@ -85,9 +85,9 @@ module Parser =
                 Call(name,List.ofSeq args)
             elif Set.contains name noArgumentFunctions then
                 Call(name, [])
-            elif (match s.Current.Kind with
-                  | Identifier nextName -> not (Set.contains nextName statementFunctions)
-                  | Integer _ | CharLiteral _ | StringLiteral _ | LParen -> true
+            elif (match s.Current with
+                  | { Kind=Identifier nextName; Position=nextPosition } -> nextPosition.Line = position.Line && not (Set.contains nextName statementFunctions)
+                  | { Kind=Integer _ } | { Kind=CharLiteral _ } | { Kind=StringLiteral _ } | { Kind=LParen } -> true
                   | _ -> false) then
                 // Classical Tiny-C permits a single unparenthesized argument,
                 // e.g. "pl line + 1".  It also permits comma-separated

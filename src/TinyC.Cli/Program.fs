@@ -7,6 +7,7 @@ open TinyC
 
 let private usage () =
     eprintfn "Usage: tinyc [--max-steps N] <program.tc>"
+    eprintfn "       tinyc [--max-steps N] --input TEXT <program.tc>"
     eprintfn "       tinyc --serve [port]"
 
 let private contentType (path: string) =
@@ -71,12 +72,12 @@ let private serve port =
             else
                 send 404 "Not Found" "text/plain; charset=utf-8" (Encoding.UTF8.GetBytes "Not found.")
 
-let private runProgram maxSteps path =
+let private runProgram maxSteps input path =
     if not (File.Exists path) then
         eprintfn "Tiny-C source file not found: %s" path
         2
     else
-        match Api.executeFileWithLimit maxSteps path with
+        match Api.executeFileWithInputWithLimit maxSteps input path with
         | Ok result ->
             Console.Write(result.Output)
             eprintfn "\nExit value: %d (%d steps)" result.ExitValue result.Steps
@@ -93,9 +94,14 @@ let main args =
         match Int32.TryParse port with
         | true, value when value > 0 && value <= 65535 -> serve value; 0
         | _ -> eprintfn "Port must be between 1 and 65535."; 2
-    | [| path |] -> runProgram 10_000_000 path
+    | [| path |] -> runProgram 10_000_000 "" path
+    | [| "--input"; input; path |] -> runProgram 10_000_000 input path
     | [| "--max-steps"; limit; path |] ->
         match Int32.TryParse limit with
-        | true, value when value > 0 -> runProgram value path
+        | true, value when value > 0 -> runProgram value "" path
+        | _ -> eprintfn "Step limit must be a positive integer."; 2
+    | [| "--max-steps"; limit; "--input"; input; path |] ->
+        match Int32.TryParse limit with
+        | true, value when value > 0 -> runProgram value input path
         | _ -> eprintfn "Step limit must be a positive integer."; 2
     | _ -> usage (); 2

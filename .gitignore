@@ -7,3 +7,4 @@ node_modules/
 reference/
 *_session*.*
 *_thread*.*
+*.7z

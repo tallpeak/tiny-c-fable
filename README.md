@@ -17,16 +17,20 @@ iteration. The core uses APIs supported by Fable and can compile to JavaScript.
 - canvas graphics recording for `color.tc` (`start`, `rectangle`, `setrgb`, `fill`, `moveto`, `showtext`, and `stroke`)
 - execution step limit for stopping runaway programs
 - line/column lexer and parser diagnostics
+- the portable machine calls used by the reference libraries, including character
+  input, formatted output, string operations, and block scanning
 
 The .NET file runner supports source includes such as `#include pps/mathLib.tc`.
+Programs that read input can use `Api.executeWithInputWithLimit` or the CLI's
+`--input` option. The browser playground has a program-input field for the same
+purpose.
 The browser playground resolves includes over HTTP from files served beneath the
 repository root. Its Lee MathLib example loads the original source and expands
-`pps/mathLib.tc` and `pps/library.tc` before execution. General pointer arithmetic,
-file/system calls, dynamic native plugins, debugger commands, varargs, and the
-numbered `MC` interface. `pl charArray + offset` is the one compatibility
-exception: it prints a null-terminated character-array slice for classical
-console programs such as Mandelbrot. Those features otherwise need explicit
-browser-safe designs rather than a literal port.
+`pps/mathLib.tc` and `pps/library.tc` before execution. General pointer arithmetic
+beyond array offsets, file/system calls, dynamic native plugins, and debugger
+commands remain outside the browser-safe subset. `pl charArray + offset` prints a
+null-terminated character-array slice for classical console programs such as
+Mandelbrot.
 
 ## Build and test
 
@@ -65,6 +69,13 @@ The reference Mandelbrot program is supported:
 
 ```sh
 dotnet run --project src/TinyC.Cli -- reference/tiny-c/SamplePrograms/mandel.tc
+```
+
+The reference Roman-numeral sample can be run with two input lines followed by
+`+` or `*`:
+
+```sh
+dotnet run --project src/TinyC.Cli -- --input "X`nIX`n+`n" reference/tiny-c/SamplePrograms/roman.tc
 ```
 
 ## Example

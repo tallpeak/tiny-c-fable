@@ -69,11 +69,18 @@ module Runtime =
                 | Number n | Character n -> NumberValue n
                 | Text x -> TextValue x
                 | Variable name ->
-                    match findSlot env name with
-                    | Scalar(_, r) -> NumberValue r.Value
-                    | Array(CharType, values) -> CharacterArrayValue(values, 0)
-                    | Array(IntType, values) -> IntegerArrayValue(values, 0)
-                    | ValueSlot(_, v) -> v.Value
+                    match tryFindSlot env name with
+                    | Some(Scalar(_, r)) -> NumberValue r.Value
+                    | Some(Array(CharType, values)) -> CharacterArrayValue(values, 0)
+                    | Some(Array(IntType, values)) -> IntegerArrayValue(values, 0)
+                    | Some(ValueSlot(_, v)) -> v.Value
+                    | None ->
+                        // Classical Tiny-C allows a bare function name as a
+                        // zero-argument call (e.g. "lf;" or trailing "foo").
+                        // Fall back to invocation so the error for a bare
+                        // name with parameters reports the arity mismatch
+                        // instead of "Unknown variable".
+                        invoke name []
                 | Index(name,index) ->
                     match findSlot env name with
                     | Array(_, a) -> let i=eval env index |> number in if i<0 || i>=a.Length then raise(RuntimeFailure "Array index out of range") else NumberValue a[i]
@@ -126,6 +133,8 @@ module Runtime =
                     match op, left, right with
                     | Add, CharacterArrayValue(values, offset), NumberValue n -> CharacterArrayValue(values, offset + n)
                     | Add, IntegerArrayValue(values, offset), NumberValue n -> IntegerArrayValue(values, offset + n / 4)
+                    | Subtract, CharacterArrayValue(values, offset), NumberValue n -> CharacterArrayValue(values, offset - n)
+                    | Subtract, IntegerArrayValue(values, offset), NumberValue n -> IntegerArrayValue(values, offset - n / 4)
                     | Add, NumberValue x, NumberValue y -> NumberValue(x+y)
                     | Add, _, _ -> raise(RuntimeFailure "Only a character array can be offset for output")
                     | _, _, _ ->

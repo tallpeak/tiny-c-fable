@@ -1,4 +1,4 @@
-import { executeWithLimit } from "../dist/Api.js";
+import { executeWithInputWithLimit } from "../dist/Api.js";
 import { expandSourceWithIncludes } from "./include-loader.js";
 
 const example = `sum int n [
@@ -18,6 +18,7 @@ main [
 ]`;
 
 const source = document.querySelector("#source");
+const input = document.querySelector("#input");
 const output = document.querySelector("#output");
 const canvas = document.querySelector("#canvas");
 const context = canvas.getContext("2d");
@@ -99,6 +100,15 @@ function drawCanvas(commands) {
         context.beginPath();
         context.rect(Number(parts[1]), Number(parts[2]), Number(parts[3]), Number(parts[4]));
         break;
+      case "ellipse": {
+        const ex = Number(parts[1]);
+        const ey = Number(parts[2]);
+        const ew = Number(parts[3]);
+        const eh = Number(parts[4]);
+        context.beginPath();
+        context.ellipse(ex + ew / 2, ey + eh / 2, Math.abs(ew / 2), Math.abs(eh / 2), 0, 0, 2 * Math.PI);
+        break;
+      }
       case "fill":
         context.fill();
         break;
@@ -158,7 +168,7 @@ async function run() {
   try {
     const expandedSource = await expandSourceWithIncludes(source.value, sourceUrl);
     status.textContent = "Running…";
-    const result = executeWithLimit(maxSteps, expandedSource);
+    const result = executeWithInputWithLimit(maxSteps, input.value, expandedSource);
     if (result.tag === 0) {
       const execution = result.fields[0];
       drawCanvas(execution.CanvasCommands);

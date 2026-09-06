@@ -56,3 +56,9 @@ match Api.executeFileWithLimit 10_000_000 sampleProgram with
 | Ok result when result.ExitValue = 0 && result.Output.Contains "testMathLib.tc - 1/11/19" -> printfn "PASS sample includes (%d steps)" result.Steps
 | Ok result -> failwithf "sample includes failed: exit=%d output prefix=%A" result.ExitValue (result.Output.Substring(0, min result.Output.Length 80))
 | Error message -> failwithf "sample includes failed: %s" message
+
+let romanProgram = Path.Combine(Path.GetDirectoryName sampleProgram, "roman.tc")
+match Api.executeFileWithInputWithLimit 10_000_000 "X\nIX\n+\n" romanProgram with
+| Ok result when result.ExitValue = 0 && result.Output.Contains "10 + 9 = 19" && result.CanvasCommands.Contains "clear|900|300" -> printfn "PASS roman sample (%d steps)" result.Steps
+| Ok result -> failwithf "roman sample failed: exit=%d output=%A" result.ExitValue result.Output
+| Error message -> failwithf "roman sample failed: %s" message
