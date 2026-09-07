@@ -15,13 +15,18 @@ try {
 
     $samples = Join-Path $staging "reference/tiny-c/SamplePrograms"
     $libraries = Join-Path $staging "reference/tiny-c/pps"
+    $pigra = Join-Path $staging "reference/tiny-c/PlugIns/PicaGraphics"
     New-Item $samples -ItemType Directory -Force | Out-Null
     New-Item $libraries -ItemType Directory -Force | Out-Null
+    New-Item $pigra -ItemType Directory -Force | Out-Null
 
     Copy-Item ".\dist" $staging -Recurse
     Copy-Item ".\web" $staging -Recurse
     Copy-Item ".\reference\tiny-c\SamplePrograms\*" $samples -Recurse
     Copy-Item ".\reference\tiny-c\pps\*" $libraries -Recurse
+    Copy-Item ".\reference\tiny-c\PlugIns\PicaGraphics\pigra_lib.tc" (Join-Path $libraries "pigra_lib.tc")
+    Copy-Item ".\reference\tiny-c\lrblib.tc" (Join-Path $libraries "lrblib.tc")
+    Copy-Item ".\reference\tiny-c\PlugIns\PicaGraphics\*.tc" $pigra
 
     Push-Location $staging
     try {

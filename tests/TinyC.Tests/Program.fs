@@ -52,6 +52,17 @@ for name, source, expected in errorCases do
 
 if failures > failuresBeforeErrors then failwithf "%d error test(s) failed" (failures - failuresBeforeErrors)
 
+match Api.execute "main [ MC 1001; MC(30,50,1003); MC(10,10,70,70,1004); MC 1002; return 0; ]" with
+| Ok result when result.CanvasCommands.Contains "pigra-blank" && result.CanvasCommands.Contains "pigra-plot|30|50" && result.CanvasCommands.Contains "pigra-line|10|10|70|70" -> printfn "PASS pigra graphics commands"
+| Ok result -> failures <- failures + 1; eprintfn "FAIL pigra graphics commands: %s" result.CanvasCommands
+| Error message -> failures <- failures + 1; eprintfn "FAIL pigra graphics commands: %s" message
+
+let pigraProgram = Path.Combine(Path.GetDirectoryName sampleProgram, "..", "PlugIns", "PicaGraphics", "testPigra.tc") |> Path.GetFullPath
+match Api.executeFileWithLimit 10_000_000 pigraProgram with
+| Ok result when result.ExitValue = 0 && result.CanvasCommands.Contains "pigra-circle" && result.CanvasCommands.Contains "pigra-star" -> printfn "PASS pigra sample (%d steps)" result.Steps
+| Ok result -> failures <- failures + 1; eprintfn "FAIL pigra sample: exit=%d commands=%s" result.ExitValue result.CanvasCommands
+| Error message -> failures <- failures + 1; eprintfn "FAIL pigra sample: %s" message
+
 match Api.executeFileWithLimit 10_000_000 sampleProgram with
 | Ok result when result.ExitValue = 0 && result.Output.Contains "testMathLib.tc - 1/11/19" -> printfn "PASS sample includes (%d steps)" result.Steps
 | Ok result -> failwithf "sample includes failed: exit=%d output prefix=%A" result.ExitValue (result.Output.Substring(0, min result.Output.Length 80))

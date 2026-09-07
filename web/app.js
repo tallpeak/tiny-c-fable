@@ -26,6 +26,7 @@ const status = document.querySelector("#status");
 const stepLimit = document.querySelector("#step-limit");
 const runButton = document.querySelector("#run");
 const sampleSelect = document.querySelector("#sample");
+const pigraButton = document.querySelector("#pigra-example");
 const sampleUrl = (name) => new URL(`../reference/tiny-c/SamplePrograms/${encodeURIComponent(name)}`, import.meta.url);
 const sampleIndexUrl = sampleUrl("");
 let sourceUrl = sampleUrl("editor.tc");
@@ -144,6 +145,56 @@ function drawCanvas(commands) {
         break;
       case "next":
         break;
+      case "pigra-blank":
+        canvas.width = 800;
+        canvas.height = 800;
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "#111";
+        context.strokeStyle = "#111";
+        context.font = "12px monospace";
+        break;
+      case "pigra-show":
+        break;
+      case "pigra-plot": {
+        const px = Number(parts[1]) * 10;
+        const py = (80 - Number(parts[2])) * 10;
+        context.fillText("·", px, py);
+        break;
+      }
+      case "pigra-line":
+        context.beginPath();
+        context.moveTo(Number(parts[1]) * 10, (80 - Number(parts[2])) * 10);
+        context.lineTo(Number(parts[3]) * 10, (80 - Number(parts[4])) * 10);
+        context.stroke();
+        break;
+      case "pigra-circle":
+      case "pigra-star": {
+        const cx = Number(parts[1]) * 10;
+        const cy = (80 - Number(parts[2])) * 10;
+        const radius = Number(parts[3]) * 10;
+        const points = Math.max(2, Number(parts[4]));
+        context.beginPath();
+        for (let i = 0; i <= points; i += 1) {
+          const angle = -Math.PI / 2 + (i % points) * 2 * Math.PI / points;
+          const pointRadius = parts[0] === "pigra-star" && i % 2 === 1 ? radius * 0.45 : radius;
+          const px = cx + Math.cos(angle) * pointRadius;
+          const py = cy + Math.sin(angle) * pointRadius;
+          if (i === 0) context.moveTo(px, py); else context.lineTo(px, py);
+        }
+        context.stroke();
+        break;
+      }
+      case "pigra-triangle":
+        context.beginPath();
+        context.moveTo(Number(parts[1]) * 10, (80 - Number(parts[2])) * 10);
+        context.lineTo(Number(parts[3]) * 10, (80 - Number(parts[4])) * 10);
+        context.lineTo(Number(parts[5]) * 10, (80 - Number(parts[6])) * 10);
+        context.closePath();
+        context.stroke();
+        break;
+      case "pigra-text":
+        context.fillText(parts.slice(3).join("|"), Number(parts[1]) * 10, (80 - Number(parts[2])) * 10);
+        break;
       case "text":
         context.fillText(parts.slice(1).join("|"), x, y);
         break;
@@ -200,6 +251,27 @@ document.querySelector("#example").addEventListener("click", () => {
 });
 sampleSelect.addEventListener("change", () => {
   if (sampleSelect.value) loadSample(sampleSelect.value);
+});
+pigraButton.addEventListener("click", async () => {
+  const url = new URL("../reference/tiny-c/PlugIns/PicaGraphics/testPigra.tc", import.meta.url);
+  pigraButton.disabled = true;
+  status.textContent = "Loading Pigra Graphics…";
+  status.className = "";
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+    source.value = await response.text();
+    sourceUrl = url;
+    output.textContent = "";
+    sampleSelect.value = "";
+    status.textContent = "Pigra Graphics loaded";
+  } catch (error) {
+    output.textContent = error instanceof Error ? error.message : String(error);
+    status.textContent = "Load error";
+    status.className = "error";
+  } finally {
+    pigraButton.disabled = false;
+  }
 });
 
 source.value = example;

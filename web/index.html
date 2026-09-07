@@ -7,25 +7,36 @@
     <style>
       :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #10151c; color: #e8edf3; }
       body { margin: 0; min-height: 100vh; display: grid; place-items: center; }
-      main { width: min(980px, calc(100% - 2rem)); padding: 2rem 0 3rem; }
-      h1 { margin: 0; font-size: 1.75rem; }
-      .intro { color: #aab7c6; margin: .5rem 0 1.5rem; }
-      .toolbar { display: flex; gap: .75rem; align-items: center; margin-bottom: .75rem; }
+      main { width: min(1180px, calc(100% - 2rem)); padding: 1.25rem 0 2rem; }
+      h1 { margin: 0; font-size: 1.6rem; }
+      .intro { color: #aab7c6; margin: .35rem 0 1rem; }
+      .toolbar { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; margin-bottom: .75rem; }
       button { border: 0; border-radius: .4rem; padding: .65rem 1rem; font: inherit; font-weight: 700; cursor: pointer; background: #45c486; color: #08140e; }
       button:disabled, select:disabled { cursor: wait; opacity: .65; }
       button.secondary { background: #273444; color: #dce6f1; }
       label { color: #aab7c6; font-size: .9rem; }
+      label.field-label { display: block; margin: 0 0 .35rem; }
       label.step-limit { margin-left: auto; }
+      .workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, .85fr); gap: 1rem; align-items: start; }
+      .editor-panel, .results-panel { min-width: 0; }
+      .results-panel h2:first-child { margin-top: 0; }
       input, select { margin-left: .4rem; padding: .35rem; border: 1px solid #45576c; border-radius: .3rem; background: #17212d; color: inherit; }
       input { width: 7rem; }
       select { max-width: 18rem; }
       textarea, pre { box-sizing: border-box; width: 100%; border: 1px solid #34465a; border-radius: .5rem; background: #0b1016; color: #e8edf3; font: 14px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
-      textarea { min-height: 23rem; resize: vertical; padding: 1rem; }
-      h2 { font-size: 1rem; margin: 1.25rem 0 .5rem; color: #c4d1de; }
-      pre { min-height: 7rem; margin: 0; padding: 1rem; white-space: pre-wrap; }
+      textarea { min-height: 0; resize: vertical; padding: .75rem; }
+      #source { height: 18rem; }
+      #input { height: 4.5rem; }
+      h2 { font-size: 1rem; margin: 1rem 0 .5rem; color: #c4d1de; }
+      pre { min-height: 6rem; margin: 0; padding: .75rem; white-space: pre-wrap; }
       canvas { display: block; width: 100%; max-width: 700px; height: auto; border: 1px solid #34465a; border-radius: .5rem; background: white; }
       #status { color: #9db0c3; font-size: .9rem; }
       #status.error { color: #ff9b9b; }
+      @media (max-width: 800px) {
+        main { width: min(100% - 1rem, 680px); padding-top: 1rem; }
+        .workspace { grid-template-columns: 1fr; }
+        label.step-limit { margin-left: 0; }
+      }
     </style>
   </head>
   <body>
@@ -35,17 +46,25 @@
       <div class="toolbar">
         <button id="run" type="button">Run program</button>
         <button id="example" class="secondary" type="button">Load example</button>
+        <button id="pigra-example" class="secondary" type="button">Load Pigra Graphics</button>
         <label>Sample <select id="sample" disabled><option>Finding programs…</option></select></label>
         <span id="status" aria-live="polite">Ready</span>
         <label class="step-limit">Step limit <input id="step-limit" type="number" min="1" value="10000000" /></label>
       </div>
-      <textarea id="source" spellcheck="false" aria-label="Tiny-C source"></textarea>
-      <label for="input">Program input (one character stream)</label>
-      <textarea id="input" spellcheck="false" aria-label="Program input" placeholder="For example: X\nIX\n+\n"></textarea>
-      <h2>Output</h2>
-      <pre id="output" aria-live="polite"></pre>
-      <h2>Canvas</h2>
-      <canvas id="canvas" width="350" height="360" aria-label="Tiny-C drawing output"></canvas>
+      <div class="workspace">
+        <section class="editor-panel" aria-label="Tiny-C editor">
+          <label class="field-label" for="source">Program</label>
+          <textarea id="source" spellcheck="false" aria-label="Tiny-C source"></textarea>
+          <label class="field-label" for="input">Program input (one character stream)</label>
+          <textarea id="input" spellcheck="false" aria-label="Program input" placeholder="For example: X\nIX\n+\n"></textarea>
+          <h2>Output</h2>
+          <pre id="output" aria-live="polite"></pre>
+        </section>
+        <section class="results-panel" aria-label="Program results">
+          <h2>Canvas</h2>
+          <canvas id="canvas" width="350" height="360" aria-label="Tiny-C drawing output"></canvas>
+        </section>
+      </div>
     </main>
     <script type="module" src="./app.js?v=arcbowpic"></script>
   </body>

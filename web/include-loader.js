@@ -56,6 +56,10 @@ export async function expandSourceWithIncludes(source, sourceUrl, loading = new 
   try {
     const expanded = [];
     for (const line of source.split(/\r?\n/)) {
+      if (/^\s*#loadMC\s+.+?\s*$/.test(line)) {
+        // Plugin loading is replaced by built-in browser-safe host calls.
+        continue;
+      }
       const match = line.match(/^\s*#include\s+(.+?)\s*$/);
       if (!match) {
         expanded.push(line);

@@ -57,7 +57,12 @@ module Lexer =
                 if i >= source.Length then problem <- Some { Position = p; Message = "Unterminated character literal" }
                 else
                     let value =
-                        if source[i] = '\\' then
+                        if source[i] = '\\' && peek 1 = Some '\'' then
+                            // Legacy Tiny-C writes a backslash as '\\' followed by
+                            // the delimiter quote: '\\'.
+                            advance() |> ignore
+                            '\\'
+                        elif source[i] = '\\' then
                             advance() |> ignore
                             if i < source.Length then escaped (advance()) else '\000'
                         else

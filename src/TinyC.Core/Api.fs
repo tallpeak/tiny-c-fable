@@ -59,6 +59,9 @@ module Api =
                         match resolveInclude baseDir includeText with
                         | Some includedPath -> builder.Append(expandFile includedPath : string) |> ignore
                         | None -> failwithf "Unable to resolve include '%s' from '%s'" includeText fullPath
+                    elif trimmed.StartsWith("#loadMC ", StringComparison.Ordinal) then
+                        // Plugin loading is a host concern; browser-safe MC calls are built in.
+                        ()
                     else
                         builder.AppendLine(line) |> ignore
                 builder.ToString()
@@ -276,8 +279,38 @@ module Api =
                             else Ok(Runtime.NumberValue(copyText values start text))
                         else
                             Ok(Runtime.NumberValue(copyText values offset text))
+                | 102, [_] -> Ok(Runtime.NumberValue 0)
                 | 108, [] -> Ok(Runtime.NumberValue 0)
                 | 109, [] -> Ok(Runtime.NumberValue 0)
+                // Pica Graphics compatibility calls. Coordinates use the original
+                // 80-by-80 pica space; the browser maps them onto the canvas.
+                | 1001, [] -> canvasCommand "pigra-blank"; Ok(Runtime.NumberValue 0)
+                | 1002, [] -> canvasCommand "pigra-show"; Ok(Runtime.NumberValue 0)
+                | 1003, [x; y] ->
+                    match numeric x, numeric y with
+                    | Ok x, Ok y -> canvasCommand (sprintf "pigra-plot|%d|%d" x y); Ok(Runtime.NumberValue 0)
+                    | Error e, _ | _, Error e -> fail e
+                | 1004, [x0; y0; x1; y1] ->
+                    match numeric x0, numeric y0, numeric x1, numeric y1 with
+                    | Ok x0, Ok y0, Ok x1, Ok y1 -> canvasCommand (sprintf "pigra-line|%d|%d|%d|%d" x0 y0 x1 y1); Ok(Runtime.NumberValue 0)
+                    | Error e, _, _, _ | _, Error e, _, _ | _, _, Error e, _ | _, _, _, Error e -> fail e
+                | 1005, [x; y; radius; points] ->
+                    match numeric x, numeric y, numeric radius, numeric points with
+                    | Ok x, Ok y, Ok radius, Ok points -> canvasCommand (sprintf "pigra-circle|%d|%d|%d|%d" x y radius points); Ok(Runtime.NumberValue 0)
+                    | Error e, _, _, _ | _, Error e, _, _ | _, _, Error e, _ | _, _, _, Error e -> fail e
+                | 1006, [x; y; radius; points] ->
+                    match numeric x, numeric y, numeric radius, numeric points with
+                    | Ok x, Ok y, Ok radius, Ok points -> canvasCommand (sprintf "pigra-star|%d|%d|%d|%d" x y radius points); Ok(Runtime.NumberValue 0)
+                    | Error e, _, _, _ | _, Error e, _, _ | _, _, Error e, _ | _, _, _, Error e -> fail e
+                | 1007, [x; y; text] ->
+                    match numeric x, numeric y with
+                    | Ok x, Ok y -> canvasCommand (sprintf "pigra-text|%d|%d|%s" x y ((textOf text).Replace("|", " ").Replace("\r", "").Replace("\n", " "))); Ok(Runtime.NumberValue 0)
+                    | Error e, _ | _, Error e -> fail e
+                | 1008, [_] -> Ok(Runtime.NumberValue 0)
+                | 1009, [x0; y0; x1; y1; x2; y2] ->
+                    match numeric x0, numeric y0, numeric x1, numeric y1, numeric x2, numeric y2 with
+                    | Ok x0, Ok y0, Ok x1, Ok y1, Ok x2, Ok y2 -> canvasCommand (sprintf "pigra-triangle|%d|%d|%d|%d|%d|%d" x0 y0 x1 y1 x2 y2); Ok(Runtime.NumberValue 0)
+                    | Error e, _, _, _, _, _ | _, Error e, _, _, _, _ | _, _, Error e, _, _, _ | _, _, _, Error e, _, _ | _, _, _, _, Error e, _ | _, _, _, _, _, Error e -> fail e
                 | _, _ -> fail (sprintf "Machine call %d is not implemented" mcno)
             | _ -> fail "Machine call expects its number as the final argument"
         let hosts : Map<string,Runtime.HostFunction> =
