@@ -73,3 +73,29 @@ match Api.executeFileWithInputWithLimit 10_000_000 "X\nIX\n+\n" romanProgram wit
 | Ok result when result.ExitValue = 0 && result.Output.Contains "10 + 9 = 19" && result.CanvasCommands.Contains "clear|900|300" -> printfn "PASS roman sample (%d steps)" result.Steps
 | Ok result -> failwithf "roman sample failed: exit=%d output=%A" result.ExitValue result.Output
 | Error message -> failwithf "roman sample failed: %s" message
+
+match Api.executeWithInputWithLimit 1_000_000 "42\n" "main [ int n; n=gn; return n; ]" with
+| Ok result when result.ExitValue = 42 && result.Output = "42\n" -> printfn "PASS gn number (%d steps)" result.Steps
+| Ok result -> failwithf "gn number failed: exit=%d output=%A" result.ExitValue result.Output
+| Error message -> failwithf "gn number failed: %s" message
+
+match Api.executeWithInputWithLimit 1_000_000 "abc\n-7\n" "main [ int n; n=gn(); return n; ]" with
+| Ok result when result.ExitValue = -7 && result.Output = "abc\nnumber required -7\n" -> printfn "PASS gn insists (%d steps)" result.Steps
+| Ok result -> failwithf "gn insists failed: exit=%d output=%A" result.ExitValue result.Output
+| Error message -> failwithf "gn insists failed: %s" message
+
+let vanProgram = Path.Combine(Path.GetDirectoryName sampleProgram, "van.tc")
+match Api.executeFileWithInputWithLimit 10_000_000 "10\n3\n" vanProgram with
+| Ok result when result.ExitValue = 0 && result.Output.Contains "wrappers left =" -> printfn "PASS van sample (%d steps)" result.Steps
+| Ok result -> failwithf "van sample failed: exit=%d output=%A" result.ExitValue result.Output
+| Error message -> failwithf "van sample failed: %s" message
+
+let savedIn = Console.In
+Console.SetIn(new StringReader(""))
+try
+    match Api.executeWithInputWithLimit 1_000_000 "" "main [ return gn; ]" with
+    | Ok result when result.ExitValue = 0 -> printfn "PASS gn end of input (%d steps)" result.Steps
+    | Ok result -> failwithf "gn end of input failed: exit=%d output=%A" result.ExitValue result.Output
+    | Error message -> failwithf "gn end of input failed: %s" message
+finally
+    Console.SetIn(savedIn)

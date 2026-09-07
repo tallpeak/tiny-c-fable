@@ -76,6 +76,55 @@ module Api =
         let canvasCommand (command: string) = canvasCommands.AppendLine(command) |> ignore
         let input = Queue<int>(input |> Seq.map int)
 
+        // Reference `gn` (pps/library.tc) reads a terminal line and insists on
+        // a number. As a host function it consumes one line from the shared
+        // character input (so it interleaves correctly with MC 2 readers like
+        // `gs`), falling back to the console on .NET when batch input is empty.
+        let readInputLine () : string option =
+            if input.Count = 0 then
+#if FABLE_COMPILER
+                None
+#else
+                match Console.ReadLine() with
+                | null -> None
+                | line ->
+                    output.AppendLine(line) |> ignore
+                    Some line
+#endif
+            else
+                let chars = StringBuilder()
+                let mutable finished = false
+                while not finished && input.Count > 0 do
+                    let ch = input.Dequeue()
+                    output.Append(char ch) |> ignore
+                    if ch = 10 || ch = 13 then
+                        finished <- true
+                        if ch = 13 && input.Count > 0 && input.Peek() = 10 then
+                            output.Append(char (input.Dequeue())) |> ignore
+                    else
+                        chars.Append(char ch) |> ignore
+                Some(chars.ToString())
+        // Leading blanks/signs (any '-' negates, like the reference atoi),
+        // then up to 10 digits. Returns None when there are no digits.
+        let tryParseNumber (line: string) : int option =
+            let mutable i = 0
+            let mutable negative = false
+            while i < line.Length && (line[i] = ' ' || line[i] = '+' || line[i] = '-') do
+                if line[i] = '-' then negative <- true
+                i <- i + 1
+            let mutable value = 0L
+            let mutable digits = 0
+            while i < line.Length && digits < 10 && line[i] >= '0' && line[i] <= '9' do
+                value <- value * 10L + int64 (int line[i] - int '0')
+                digits <- digits + 1
+                i <- i + 1
+            if digits = 0 then None
+            else
+                let signed = if negative then -value else value
+                if signed > int64 Int32.MaxValue then Some Int32.MaxValue
+                elif signed < int64 Int32.MinValue then Some Int32.MinValue
+                else Some(int signed)
+
         let textOf = function
             | Runtime.TextValue s -> s
             | Runtime.CharacterArrayValue(values, offset) ->
@@ -349,6 +398,18 @@ module Api =
               "putchar", fun xs -> match xs with [Runtime.NumberValue n] -> output.Append(char n) |> ignore; Ok(Runtime.NumberValue n) | _ -> Error "putchar expects one character"
               "pn", fun xs -> match xs with [Runtime.NumberValue n] -> output.Append(n) |> ignore; Ok(Runtime.NumberValue n) | _ -> Error "pn expects one integer"
               "pc", fun xs -> match xs with [Runtime.NumberValue n] -> output.Append(char n) |> ignore; Ok(Runtime.NumberValue n) | _ -> Error "pc expects one character"
+              "gn", fun xs ->
+                    match xs with
+                    | [] ->
+                        let rec insist () =
+                            match readInputLine () with
+                            | None -> Ok(Runtime.NumberValue 0)
+                            | Some line ->
+                                match tryParseNumber line with
+                                | Some n -> Ok(Runtime.NumberValue n)
+                                | None -> output.Append("number required ") |> ignore; insist ()
+                        insist ()
+                    | _ -> Error "gn expects no arguments"
               // Graphics are recorded as data so the browser host can replay them on canvas.
               "start", fun xs -> match xs with [_; Runtime.NumberValue width; Runtime.NumberValue height] -> canvasCommand (sprintf "clear|%d|%d" width height); Ok(Runtime.NumberValue 0) | _ -> Error "start expects a name, width, and height"
               "rectangle", fun xs -> match xs with [Runtime.NumberValue x; Runtime.NumberValue y; Runtime.NumberValue width; Runtime.NumberValue height] -> canvasCommand (sprintf "rectangle|%d|%d|%d|%d" x y width height); Ok(Runtime.NumberValue 0) | _ -> Error "rectangle expects four integers"
