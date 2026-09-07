@@ -235,7 +235,7 @@ module Api =
                         countValues[countOffset] <- remaining
                         Ok(Runtime.NumberValue result)
                     | Error e, _, _ | _, Error e, _ | _, _, Error e -> fail e
-                | 12, [] -> Ok(Runtime.NumberValue(if input.Count = 0 then 0 else 1))
+                | 12, [] -> Ok(Runtime.NumberValue(if input.Count = 0 then 0 else input.Peek()))
                 | 13, [first; last] ->
                     match pointerRange first last with
                     | Ok(values, firstOffset, lastOffset) ->
@@ -282,6 +282,26 @@ module Api =
                 | 102, [_] -> Ok(Runtime.NumberValue 0)
                 | 108, [] -> Ok(Runtime.NumberValue 0)
                 | 109, [] -> Ok(Runtime.NumberValue 0)
+                | 110, [destination] ->
+                    match characterArray destination with
+                    | Error e -> fail e
+                    | Ok(values, offset) ->
+                        let now = DateTime.Now
+                        let date = sprintf "%04d-%02d-%02d %02d:%02d:%02d" now.Year now.Month now.Day now.Hour now.Minute now.Second
+                        Ok(Runtime.NumberValue(copyText values offset date))
+                | 118, [value] ->
+                    match numeric value with
+                    | Ok n when n >= 0 -> Ok(Runtime.NumberValue(int (Math.Sqrt(float n) + 0.5)))
+                    | Ok _ -> fail "Machine call 118 expects a non-negative integer"
+                    | Error e -> fail e
+                | 119, [value] ->
+                    match numeric value with
+                    | Ok n ->
+                        let x = float n / 1000.0
+                        let degrees = Math.Atan x * 180.0 / Math.PI
+                        let rounded = if degrees >= 0.0 then int (degrees + 0.5) else int (degrees - 0.5)
+                        Ok(Runtime.NumberValue rounded)
+                    | Error e -> fail e
                 // Pica Graphics compatibility calls. Coordinates use the original
                 // 80-by-80 pica space; the browser maps them onto the canvas.
                 | 1001, [] -> canvasCommand "pigra-blank"; Ok(Runtime.NumberValue 0)
