@@ -42,6 +42,7 @@ try {
 
     & ssh $remote "set -e; mkdir -p '$remoteDirectory'; cd '$remoteDirectory'; rm -rf dist web reference SamplePrograms pps; rm -f ./*.tc; 7z x tc.7z -y"
     if ($LASTEXITCODE -ne 0) { throw "Remote extraction failed" }
+    echo "visit https://qomph.com/tc/web/"
 }
 finally {
     Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue

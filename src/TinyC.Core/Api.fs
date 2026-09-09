@@ -396,8 +396,25 @@ module Api =
                         Ok(Runtime.NumberValue 0)
                     | _ -> Error "printf expects a format string"
               "putchar", fun xs -> match xs with [Runtime.NumberValue n] -> output.Append(char n) |> ignore; Ok(Runtime.NumberValue n) | _ -> Error "putchar expects one character"
+              "getchar", fun xs ->
+                    match xs with
+                    | [] ->
+                        let value = if input.Count = 0 then 10 else input.Dequeue()
+                        output.Append(char value) |> ignore
+                        Ok(Runtime.NumberValue value)
+                    | _ -> Error "getchar expects no arguments"
               "pn", fun xs -> match xs with [Runtime.NumberValue n] -> output.Append(n) |> ignore; Ok(Runtime.NumberValue n) | _ -> Error "pn expects one integer"
               "pc", fun xs -> match xs with [Runtime.NumberValue n] -> output.Append(char n) |> ignore; Ok(Runtime.NumberValue n) | _ -> Error "pc expects one character"
+              "cdate", fun xs ->
+                    match xs with
+                    | [destination] ->
+                        match characterArray destination with
+                        | Error e -> Error e
+                        | Ok(values, offset) ->
+                            let now = DateTime.Now
+                            let date = sprintf "%04d-%02d-%02d %02d:%02d:%02d" now.Year now.Month now.Day now.Hour now.Minute now.Second
+                            Ok(Runtime.NumberValue(copyText values offset date))
+                    | _ -> Error "cdate expects one character-array destination"
               "gn", fun xs ->
                     match xs with
                     | [] ->

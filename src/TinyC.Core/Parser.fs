@@ -86,7 +86,7 @@ module Parser =
             elif Set.contains name noArgumentFunctions then
                 Call(name, [])
             elif (match s.Current with
-                  | { Kind=Identifier nextName; Position=nextPosition } -> nextPosition.Line = position.Line && not (Set.contains nextName statementFunctions)
+                  | { Kind=Identifier nextName; Position=nextPosition } -> nextPosition.Line = position.Line && (name = "cdate" || not (Set.contains nextName statementFunctions))
                   | { Kind=Integer _ } | { Kind=CharLiteral _ } | { Kind=StringLiteral _ } | { Kind=LParen } -> true
                   | _ -> false) then
                 // Classical Tiny-C permits a single unparenthesized argument,
